@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/api.dart';
+import '../models/theme_language_provider.dart'; // Đảm bảo import ThemeProvider
 
 class AddCityScreen extends StatefulWidget {
   @override
@@ -89,8 +91,28 @@ class _AddCityScreenState extends State<AddCityScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     print('AddCityScreen: build called');
+    // Lấy ThemeProvider để xác định chế độ sáng/tối
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    // Gradient tùy chỉnh theo theme
+    final bodyGradient = LinearGradient(
+      colors: themeProvider.isDarkMode
+          ? [Colors.blueGrey[900]!, Colors.blueGrey[800]!] // Dark Mode
+          : [Colors.blue.shade200, Colors.blue.shade100], // Light Mode
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    );
+
+    final buttonGradient = LinearGradient(
+      colors: themeProvider.isDarkMode
+          ? [Colors.blue.shade800, Colors.blue.shade700] // Dark Mode
+          : [Colors.blue.shade600, Colors.blue.shade400], // Light Mode
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
     return Scaffold(
-      extendBodyBehindAppBar: true, // Cho phép nền gradient hiển thị phía sau AppBar
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -101,7 +123,7 @@ class _AddCityScreenState extends State<AddCityScreen> with SingleTickerProvider
             fontWeight: FontWeight.bold,
             fontSize: 22,
           ),
-        ), // Luôn hiển thị tiêu đề
+        ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
@@ -112,11 +134,7 @@ class _AddCityScreenState extends State<AddCityScreen> with SingleTickerProvider
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade200, Colors.blue.shade100],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          gradient: bodyGradient,
         ),
         child: SafeArea(
           child: FadeTransition(
@@ -126,7 +144,6 @@ class _AddCityScreenState extends State<AddCityScreen> with SingleTickerProvider
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Minh họa nhỏ phía trên
                   Container(
                     margin: EdgeInsets.only(bottom: 20),
                     child: Icon(
@@ -135,14 +152,17 @@ class _AddCityScreenState extends State<AddCityScreen> with SingleTickerProvider
                       color: Colors.white.withOpacity(0.7),
                     ),
                   ),
-                  // TextField với hiệu ứng bóng
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[800] // Dark Mode
+                          : Colors.white, // Light Mode
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black12,
+                          color: themeProvider.isDarkMode
+                              ? Colors.black.withOpacity(0.3)
+                              : Colors.black12,
                           blurRadius: 8,
                           offset: Offset(0, 4),
                         ),
@@ -153,7 +173,9 @@ class _AddCityScreenState extends State<AddCityScreen> with SingleTickerProvider
                       decoration: InputDecoration(
                         hintText: 'Tên thành phố',
                         hintStyle: TextStyle(
-                          color: Colors.blue.shade300,
+                          color: themeProvider.isDarkMode
+                              ? Colors.blue.shade200
+                              : Colors.blue.shade300,
                           fontStyle: FontStyle.italic,
                         ),
                         border: OutlineInputBorder(
@@ -161,34 +183,48 @@ class _AddCityScreenState extends State<AddCityScreen> with SingleTickerProvider
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: themeProvider.isDarkMode
+                            ? Colors.grey[800]
+                            : Colors.white,
                         prefixIcon: Icon(
                           Icons.search,
-                          color: Colors.blue.shade700,
+                          color: themeProvider.isDarkMode
+                              ? Colors.blue.shade400
+                              : Colors.blue.shade700,
                         ),
                         contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                       ),
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: themeProvider.isDarkMode
+                            ? Colors.white
+                            : Colors.black,
+                      ),
                     ),
                   ),
                   SizedBox(height: 24),
-                  // Nút "Thêm" với gradient và animation
                   _isLoading
                       ? Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[800]
+                          : Colors.white,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black12,
+                          color: themeProvider.isDarkMode
+                              ? Colors.black.withOpacity(0.3)
+                              : Colors.black12,
                           blurRadius: 8,
                           offset: Offset(0, 4),
                         ),
                       ],
                     ),
                     child: CircularProgressIndicator(
-                      color: Colors.blue.shade700,
+                      color: themeProvider.isDarkMode
+                          ? Colors.blue.shade400
+                          : Colors.blue.shade700,
                       strokeWidth: 3,
                     ),
                   )
@@ -205,11 +241,7 @@ class _AddCityScreenState extends State<AddCityScreen> with SingleTickerProvider
                       ),
                       child: Ink(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.blue.shade600, Colors.blue.shade400],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          gradient: buttonGradient,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Container(

@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:open_weather/widgets/settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:provider/provider.dart';
+import '../models/theme_language_provider.dart';
 import '../widgets/register.dart';
 import '../widgets/search_widgets.dart';
 import '../models/air_quality_data.dart';
@@ -36,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen>
   DateTime? _lastUpdateTime;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  String? _searchMessage;
 
   @override
   void initState() {
@@ -85,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen>
           _isLoggedIn = isLoggedIn;
           _userInfo = userInfo;
         });
-        await _restoreData(); // Khôi phục dữ liệu khi đăng nhập
+        await _restoreData();
       }
     } else {
       setState(() {
@@ -93,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen>
         _addedCities = [];
         _filteredCities = [];
       });
-      await _clearData(); // Xóa dữ liệu nếu không đăng nhập
+      await _clearData();
     }
   }
 
@@ -101,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen>
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     if (_isLoggedIn) {
-      await _saveData(); // Lưu dữ liệu trước khi đăng xuất
+      await _saveData();
       await DatabaseHistory.instance
           .backupDataToSharedPreferences(_userInfo?['email'] ?? '');
       await DatabaseHistory.instance.clearAllLocalData();
@@ -139,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _clearData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('addedCities'); // Chỉ xóa dữ liệu khi không đăng nhập
+    await prefs.remove('addedCities');
   }
 
   Future<void> _saveData() async {
@@ -180,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen>
       _isLoading = false;
       _lastUpdateTime = DateTime.now();
     });
-    await _saveData(); // Lưu sau khi cập nhật
+    await _saveData();
   }
 
   Future<void> _updateCitiesDataIfNeeded() async {
@@ -192,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _startAutoUpdate() {
     _updateTimer?.cancel();
-    _updateTimer = Timer.periodic(Duration(minutes: 5), (timer) {
+    _updateTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
       _updateCitiesData();
     });
   }
@@ -279,86 +283,21 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  void _onSearch(String query) async {
-    if (query.isNotEmpty &&
-        !_addedCities.any((city) => city['city'].toLowerCase() == query.toLowerCase())) {
-      try {
-        final coords = await _airQualityService.getCoordinates(query);
-        if (coords['lat'] == null || coords['lon'] == null) {
-          throw Exception('Tọa độ không hợp lệ cho $query');
-        }
-        final airQualityData = await _airQualityService.fetchAirQuality(
-          coords['lat']!,
-          coords['lon']!,
-          query,
-        );
-        setState(() {
-          _addedCities.add({
-            'city': query,
-            'airQualityData': airQualityData,
-            'lat': coords['lat'],
-            'lon': coords['lon'],
-          });
-          _filteredCities = List.from(_addedCities);
-          _listKey.currentState?.insertItem(_addedCities.length - 1);
-        });
-        await _saveData();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Đã thêm $query vào danh sách! AQI: ${airQualityData.aqi}',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-              ),
-              backgroundColor: _getAqiColor(airQualityData.aqi),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Không tìm thấy thành phố: $query',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-              ),
-              backgroundColor: Colors.redAccent,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
+  void _onSearch(List<String> queryList) {
+    final query = queryList.isNotEmpty ? queryList[0].toLowerCase() : '';
+    setState(() {
+      _searchMessage = null;
+      if (query.isEmpty || _addedCities.isEmpty) {
+        _filteredCities = List.from(_addedCities);
+      } else {
+        _filteredCities = _addedCities
+            .where((city) => city['city'].toLowerCase().contains(query))
+            .toList();
+        if (_filteredCities.isEmpty) {
+          _searchMessage = 'Không có thành phố này trong danh sách';
         }
       }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '$query đã có trong danh sách!',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                color: Colors.white,
-                fontSize: 16,
-              ),
-            ),
-            backgroundColor: Colors.orangeAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-    }
+    });
   }
 
   Color _getAqiColor(int aqi) {
@@ -410,13 +349,14 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _showUserInfoMenu(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: themeProvider.isDarkMode ? Colors.grey[900] : Theme.of(context).cardColor,
       builder: (context) {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -426,7 +366,11 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               Row(
                 children: [
-                  const Icon(Icons.account_circle, size: 36, color: Colors.blue),
+                  Icon(
+                    Icons.account_circle,
+                    size: 36,
+                    color: themeProvider.isDarkMode ? Colors.blue.shade300 : Colors.blue,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Thông tin tài khoản',
@@ -434,7 +378,7 @@ class _HomeScreenState extends State<HomeScreen>
                       fontFamily: 'Poppins',
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade700,
+                      color: themeProvider.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade700,
                     ),
                   ),
                 ],
@@ -442,12 +386,17 @@ class _HomeScreenState extends State<HomeScreen>
               const SizedBox(height: 8),
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                leading: const Icon(Icons.person, color: Colors.blue, size: 24),
+                leading: Icon(
+                  Icons.person,
+                  color: themeProvider.isDarkMode ? Colors.blue.shade300 : Colors.blue,
+                  size: 24,
+                ),
                 title: Text(
                   'Họ tên',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 14,
+                    color: themeProvider.isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
                 subtitle: Text(
@@ -455,17 +404,23 @@ class _HomeScreenState extends State<HomeScreen>
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 12,
+                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[700],
                   ),
                 ),
               ),
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                leading: const Icon(Icons.email, color: Colors.blue, size: 24),
+                leading: Icon(
+                  Icons.email,
+                  color: themeProvider.isDarkMode ? Colors.blue.shade300 : Colors.blue,
+                  size: 24,
+                ),
                 title: Text(
                   'Email',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 14,
+                    color: themeProvider.isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
                 subtitle: Text(
@@ -473,6 +428,7 @@ class _HomeScreenState extends State<HomeScreen>
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 12,
+                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[700],
                   ),
                 ),
               ),
@@ -507,19 +463,22 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _removeCity(int index) {
+    if (index < 0 || index >= _addedCities.length) return;
+
     final removedCity = _addedCities[index];
     String cityName = removedCity['city'];
-
-    setState(() {
-      _addedCities.removeAt(index);
-      _filteredCities = List.from(_addedCities);
-    });
 
     _listKey.currentState?.removeItem(
       index,
           (context, animation) => _buildCityCard(removedCity, animation, index),
       duration: const Duration(milliseconds: 300),
     );
+
+    setState(() {
+      _addedCities.removeAt(index);
+      _filteredCities = List.from(_addedCities);
+      _searchMessage = null; // Đặt lại thông báo tìm kiếm sau khi xóa
+    });
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -552,6 +511,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildCityCard(Map<String, dynamic> cityData, Animation<double> animation, int index) {
     final airQualityData = cityData['airQualityData'] as AirQualityData;
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return FadeTransition(
       opacity: animation,
@@ -590,11 +550,14 @@ class _HomeScreenState extends State<HomeScreen>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
+            color: themeProvider.isDarkMode ? Colors.grey[800] : Theme.of(context).cardColor,
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.white,
+                    themeProvider.isDarkMode
+                        ? Colors.grey[800]!
+                        : Theme.of(context).cardColor,
                     _getAqiBackgroundColor(airQualityData.aqi),
                   ],
                   begin: Alignment.topLeft,
@@ -622,7 +585,9 @@ class _HomeScreenState extends State<HomeScreen>
                     fontFamily: 'Poppins',
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
                 subtitle: Text(
@@ -634,9 +599,9 @@ class _HomeScreenState extends State<HomeScreen>
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                trailing: const Icon(
+                trailing: Icon(
                   Icons.arrow_forward_ios,
-                  color: Colors.grey,
+                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey,
                   size: 20,
                 ),
                 onTap: () async {
@@ -665,62 +630,97 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     print('HomeScreen: build called');
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    List<String> cityNames = _addedCities.map((city) => city['city'] as String).toList();
+
+    final bodyGradient = LinearGradient(
+      colors: themeProvider.isDarkMode
+          ? [Colors.blueGrey[900]!, Colors.blueGrey[700]!, Theme.of(context).scaffoldBackgroundColor]
+          : [Colors.blue.shade300, Colors.blue.shade100, Theme.of(context).scaffoldBackgroundColor],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      stops: const [0.0, 0.5, 1.0],
+    );
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.white.withOpacity(0.05),
+        backgroundColor: themeProvider.isDarkMode
+            ? Colors.black.withOpacity(0.05)
+            : Theme.of(context).appBarTheme.backgroundColor?.withOpacity(0.05) ?? Colors.white.withOpacity(0.05),
         elevation: 0,
         title: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            SizedBox(width: _isLoggedIn ? 0 : 8),
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.2),
-                border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[800]!.withOpacity(0.2)
+                    : Theme.of(context).cardColor.withOpacity(0.2),
+                border: Border.all(
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[800]!.withOpacity(0.5)
+                      : Theme.of(context).cardColor.withOpacity(0.5),
+                  width: 1,
+                ),
               ),
               child: Image.asset('images/logo.png', height: 36, width: 36),
             ),
-            const SizedBox(width: 12),
-            const Text(
+            const SizedBox(width: 8),
+            Text(
               'Air Quality',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 22,
-                color: Colors.white,
+                color: themeProvider.isDarkMode
+                    ? Colors.white
+                    : Theme.of(context).appBarTheme.foregroundColor ?? Colors.white,
                 letterSpacing: 1.2,
               ),
             ),
           ],
         ),
-        centerTitle: true,
+        centerTitle: false,
         actions: [
           if (_isLoggedIn)
             Padding(
-              padding: const EdgeInsets.only(right: 16.0),
+              padding: const EdgeInsets.only(right: 8.0),
               child: GestureDetector(
                 onTap: () => _showUserInfoMenu(context),
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.2),
-                    border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[800]!.withOpacity(0.2)
+                        : Theme.of(context).cardColor.withOpacity(0.2),
+                    border: Border.all(
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[800]!.withOpacity(0.5)
+                          : Theme.of(context).cardColor.withOpacity(0.5),
+                      width: 1,
+                    ),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.account_circle,
                     size: 36,
-                    color: Colors.white,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Theme.of(context).appBarTheme.foregroundColor ?? Colors.white,
                   ),
                 ),
               ),
             )
           else ...[
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.login,
-                color: Colors.white,
+                color: themeProvider.isDarkMode
+                    ? Colors.white
+                    : Theme.of(context).appBarTheme.foregroundColor ?? Colors.white,
               ),
               onPressed: () => Navigator.push(
                 context,
@@ -728,9 +728,11 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.person_add,
-                color: Colors.white,
+                color: themeProvider.isDarkMode
+                    ? Colors.white
+                    : Theme.of(context).appBarTheme.foregroundColor ?? Colors.white,
               ),
               onPressed: () => Navigator.push(
                 context,
@@ -738,39 +740,64 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
           ],
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: Icon(
+                Icons.settings,
+                color: themeProvider.isDarkMode
+                    ? Colors.white
+                    : Theme.of(context).appBarTheme.foregroundColor ?? Colors.white,
+              ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
+              ),
+            ),
+          ),
         ],
       ),
       body: Stack(
         children: [
           Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.blue.shade300,
-                  Colors.blue.shade100,
-                  Colors.white,
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: const [0.0, 0.5, 1.0],
-              ),
+              gradient: bodyGradient,
             ),
             child: Column(
               children: [
                 const SizedBox(height: 100),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: SearchWidget(onSearch: _onSearch),
+                  child: SearchWidget(
+                    onSearch: _onSearch,
+                    cities: cityNames,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: _filteredCities.isEmpty
+                  child: _addedCities.isEmpty
                       ? Center(
                     child: Text(
                       'Chưa có thành phố nào được thêm.',
                       style: TextStyle(
                         fontFamily: 'Poppins',
-                        color: Colors.white,
+                        color: themeProvider.isDarkMode
+                            ? Colors.white
+                            : Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  )
+                      : _searchMessage != null
+                      ? Center(
+                    child: Text(
+                      _searchMessage!,
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        color: themeProvider.isDarkMode
+                            ? Colors.white
+                            : Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
@@ -781,11 +808,12 @@ class _HomeScreenState extends State<HomeScreen>
                     child: AnimatedList(
                       key: _listKey,
                       initialItemCount: _filteredCities.length,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                       itemBuilder: (context, index, animation) {
-                        return _buildCityCard(
-                            _filteredCities[index], animation, index);
+                        if (index >= _filteredCities.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return _buildCityCard(_filteredCities[index], animation, index);
                       },
                     ),
                   ),
@@ -797,9 +825,11 @@ class _HomeScreenState extends State<HomeScreen>
             Positioned.fill(
               child: Container(
                 color: Colors.black.withOpacity(0.4),
-                child: const Center(
+                child: Center(
                   child: CircularProgressIndicator(
-                    color: Colors.white,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Theme.of(context).appBarTheme.foregroundColor ?? Colors.white,
                     strokeWidth: 4,
                   ),
                 ),
@@ -893,10 +923,9 @@ class _HomeScreenState extends State<HomeScreen>
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Colors.green.shade600,
-                    Colors.green.shade400,
-                  ],
+                  colors: themeProvider.isDarkMode
+                      ? [Colors.green.shade800, Colors.green.shade600]
+                      : [Colors.green.shade600, Colors.green.shade400],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -910,7 +939,13 @@ class _HomeScreenState extends State<HomeScreen>
                 ],
               ),
               padding: const EdgeInsets.all(12),
-              child: const Icon(Icons.my_location, color: Colors.white, size: 28),
+              child: Icon(
+                Icons.my_location,
+                color: themeProvider.isDarkMode
+                    ? Colors.white
+                    : Theme.of(context).appBarTheme.foregroundColor ?? Colors.white,
+                size: 28,
+              ),
             ),
             heroTag: 'locationButton',
           ),
@@ -998,10 +1033,9 @@ class _HomeScreenState extends State<HomeScreen>
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Colors.blue.shade600,
-                    Colors.blue.shade400,
-                  ],
+                  colors: themeProvider.isDarkMode
+                      ? [Colors.blue.shade800, Colors.blue.shade600]
+                      : [Colors.blue.shade600, Colors.blue.shade400],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -1015,7 +1049,13 @@ class _HomeScreenState extends State<HomeScreen>
                 ],
               ),
               padding: const EdgeInsets.all(12),
-              child: const Icon(Icons.add, color: Colors.white, size: 28),
+              child: Icon(
+                Icons.add,
+                color: themeProvider.isDarkMode
+                    ? Colors.white
+                    : Theme.of(context).appBarTheme.foregroundColor ?? Colors.white,
+                size: 28,
+              ),
             ),
             heroTag: 'addButton',
           ),

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:provider/provider.dart';
 import '../models/air_quality_data.dart';
+import '../models/theme_language_provider.dart'; // Đảm bảo tên file đúng
 
 class LocationPickerScreen extends StatefulWidget {
   @override
@@ -134,28 +136,43 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     final screenHeight = MediaQuery.of(context).size.height;
+
+    // Gradient tùy chỉnh theo theme
+    final appBarGradient = LinearGradient(
+      colors: themeProvider.isDarkMode
+          ? [Colors.lightBlueAccent[700]!, Colors.blue[600]!] // Xanh đậm cho Dark Mode
+          : [Colors.lightBlueAccent[700]!, Colors.blue[600]!], // Xanh dương nhạt đến đậm cho Light Mode
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Chọn Vị Trí Hiện Tại', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false, // Đặt thành false để tiêu đề căn trái
+        title: Text(
+          'Chọn Vị Trí Hiện Tại',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).appBarTheme.foregroundColor,
+          ),
+        ),
+        centerTitle: false,
         elevation: 0,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.lightBlueAccent, Colors.blue],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: appBarGradient,
           ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).appBarTheme.foregroundColor,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -164,15 +181,19 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             children: [
               Text(
                 'Vị trí hiện tại của bạn:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey[800]),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
               ),
               SizedBox(height: 20),
               _isLoading
-                  ? Center(child: CircularProgressIndicator())
+                  ? Center(child: CircularProgressIndicator(color: Theme.of(context).appBarTheme.foregroundColor))
                   : Card(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 elevation: 6,
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 child: Padding(
                   padding: EdgeInsets.all(24.0),
                   child: Column(
@@ -180,7 +201,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                     children: [
                       Text(
                         _cityName,
-                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black87),
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       if (_airQualityData != null) ...[
@@ -211,14 +236,20 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                             SizedBox(width: 4),
                             Text(
                               '${_airQualityData!.temperature.toStringAsFixed(1)}°C',
-                              style: TextStyle(fontSize: 16),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                              ),
                             ),
                             SizedBox(width: 20),
                             Icon(Icons.water_drop, color: Colors.lightBlue),
                             SizedBox(width: 4),
                             Text(
                               '${_airQualityData!.humidity.toStringAsFixed(0)}%',
-                              style: TextStyle(fontSize: 16),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                              ),
                             ),
                           ],
                         ),
@@ -233,7 +264,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       icon: Icon(Icons.check),
-                      onPressed: _isLoading || _airQualityData == null ? null : () {
+                      onPressed: _isLoading || _airQualityData == null
+                          ? null
+                          : () {
                         Navigator.pop(context, {
                           'city': _cityName,
                           'airQualityData': _airQualityData,
@@ -241,25 +274,46 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                           'lon': _lon,
                         });
                       },
-                      label: Text('Thêm', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text('Thêm', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        minimumSize: const Size(double.infinity, 50),
+                        backgroundColor: themeProvider.isDarkMode
+                            ? Colors.lightBlueAccent[700] // Xanh đậm cho Dark Mode
+                            : Colors.lightBlueAccent[700], // Xanh dương đậm cho Light Mode
+                        foregroundColor: Colors.white, // Chữ/icon trắng cho cả hai chế độ
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(
+                            color: Colors.white, // Viền trắng đồng bộ
+                            width: 2,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: OutlinedButton.icon(
-                      icon: Icon(Icons.close),
+                      icon: const Icon(Icons.close, color: Colors.white),
                       onPressed: () => Navigator.of(context).pop(),
-                      label: Text('Hủy', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Hủy',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.blue,
-                        side: BorderSide(color: Colors.blue),
-                        padding: EdgeInsets.symmetric(vertical: 16),
+                        foregroundColor: Colors.white, // Chữ/icon trắng
+                        backgroundColor: themeProvider.isDarkMode
+                            ? Colors.lightBlueAccent[700] // Đồng bộ màu nền với nút "Thêm" trong Dark Mode
+                            : Colors.lightBlueAccent[700], // Đồng bộ màu nền với nút "Thêm" trong Light Mode
+                        side: const BorderSide(
+                          color: Colors.white, // Viền trắng đồng bộ
+                          width: 2,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),

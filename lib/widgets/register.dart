@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../database/database_helper.dart';
+import '../models/theme_language_provider.dart'; // Đảm bảo import ThemeProvider
 import 'login.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -56,20 +58,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Lấy ThemeProvider để xác định chế độ sáng/tối
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    // Gradient tùy chỉnh theo theme
+    final appBarGradient = LinearGradient(
+      colors: themeProvider.isDarkMode
+          ? [Colors.blueGrey[900]!, Colors.blueGrey[800]!] // Dark Mode
+          : [Colors.lightBlue.shade200, Colors.lightBlue.shade100], // Light Mode
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
+    final bodyGradient = LinearGradient(
+      colors: themeProvider.isDarkMode
+          ? [Colors.blueGrey[900]!, Colors.grey[850]!] // Dark Mode
+          : [Colors.lightBlue.shade100, Colors.white], // Light Mode
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    );
+
+    final cardGradient = LinearGradient(
+      colors: themeProvider.isDarkMode
+          ? [Colors.grey[800]!, Colors.blueGrey[800]!.withOpacity(0.2)] // Dark Mode
+          : [Colors.white, Colors.lightBlue.shade50], // Light Mode
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
+    final buttonGradient = LinearGradient(
+      colors: themeProvider.isDarkMode
+          ? [Colors.lightBlue.shade800, Colors.lightBlue.shade700] // Dark Mode
+          : [Colors.lightBlue.shade600, Colors.lightBlue.shade400], // Light Mode
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent, // Để gradient hiển thị đúng
       appBar: AppBar(
-        titleSpacing: 0, // Loại bỏ khoảng cách mặc định
-        leadingWidth: 40, // Giảm chiều rộng leading
+        titleSpacing: 0,
+        leadingWidth: 40,
         title: Row(
           children: [
-            SizedBox(width: 4), // Khoảng cách nhỏ giữa icon và chữ
+            SizedBox(width: 4),
             Text(
               'Đăng ký',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: themeProvider.isDarkMode ? Colors.white : Colors.white, // Giữ màu trắng cho AppBar
               ),
             ),
           ],
@@ -78,15 +116,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         elevation: 0,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.lightBlue.shade200, Colors.lightBlue.shade100],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: appBarGradient,
           ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_new,
+              color: themeProvider.isDarkMode ? Colors.white : Colors.white), // Giữ màu trắng
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -94,14 +129,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.lightBlue.shade100, Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          gradient: bodyGradient,
           boxShadow: [
             BoxShadow(
-              color: Colors.blueGrey.withOpacity(0.05),
+              color: themeProvider.isDarkMode
+                  ? Colors.black.withOpacity(0.3)
+                  : Colors.blueGrey.withOpacity(0.05),
               blurRadius: 20,
               spreadRadius: 5,
             ),
@@ -115,7 +148,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 CircleAvatar(
                   radius: 45,
-                  backgroundColor: Colors.lightBlue.shade300,
+                  backgroundColor: themeProvider.isDarkMode
+                      ? Colors.blueGrey[800] // Dark Mode
+                      : Colors.lightBlue.shade300, // Light Mode
                   child: Icon(Icons.person_add, size: 55, color: Colors.white),
                 ),
                 const SizedBox(height: 25),
@@ -124,15 +159,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                   elevation: 8,
-                  shadowColor: Colors.blueGrey.withOpacity(0.1),
-                  color: Colors.white.withOpacity(0.95),
+                  shadowColor: themeProvider.isDarkMode
+                      ? Colors.black.withOpacity(0.3)
+                      : Colors.blueGrey.withOpacity(0.1),
+                  color: Colors.transparent, // Để gradient hiển thị
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.white, Colors.lightBlue.shade50],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      gradient: cardGradient,
                       borderRadius: BorderRadius.circular(30),
                     ),
                     padding: const EdgeInsets.all(28),
@@ -144,7 +177,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w600,
-                            color: Colors.blue.shade700,
+                            color: themeProvider.isDarkMode
+                                ? Colors.lightBlue.shade100 // Light blue nhạt cho Dark Mode
+                                : Colors.blue.shade700, // Blue đậm cho Light Mode
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -153,22 +188,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
-                            prefixIcon: Icon(Icons.email_outlined, color: Colors.lightBlue.shade600),
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade200
+                                  : Colors.lightBlue.shade600,
+                            ),
                             labelText: 'Email',
-                            labelStyle: TextStyle(color: Colors.blue.shade700, fontSize: 16),
+                            labelStyle: TextStyle(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade100
+                                  : Colors.blue.shade700,
+                              fontSize: 16,
+                            ),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.9),
+                            fillColor: themeProvider.isDarkMode
+                                ? Colors.grey[800]!.withOpacity(0.9)
+                                : Colors.white.withOpacity(0.9),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade600, width: 2),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.lightBlue.shade200
+                                    : Colors.lightBlue.shade600,
+                                width: 2,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                           ),
                         ),
@@ -177,27 +237,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _passwordController,
                           obscureText: _obscurePassword,
                           decoration: InputDecoration(
-                            prefixIcon: Icon(Icons.lock_outline, color: Colors.lightBlue.shade600),
+                            prefixIcon: Icon(
+                              Icons.lock_outline,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade200
+                                  : Colors.lightBlue.shade600,
+                            ),
                             labelText: 'Mật khẩu',
-                            labelStyle: TextStyle(color: Colors.blue.shade700, fontSize: 16),
+                            labelStyle: TextStyle(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade100
+                                  : Colors.blue.shade700,
+                              fontSize: 16,
+                            ),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.9),
+                            fillColor: themeProvider.isDarkMode
+                                ? Colors.grey[800]!.withOpacity(0.9)
+                                : Colors.white.withOpacity(0.9),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade600, width: 2),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.lightBlue.shade200
+                                    : Colors.lightBlue.shade600,
+                                width: 2,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                                color: Colors.lightBlue.shade600,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.lightBlue.shade200
+                                    : Colors.lightBlue.shade600,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -211,22 +298,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextField(
                           controller: _nameController,
                           decoration: InputDecoration(
-                            prefixIcon: Icon(Icons.person, color: Colors.lightBlue.shade600),
+                            prefixIcon: Icon(
+                              Icons.person,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade200
+                                  : Colors.lightBlue.shade600,
+                            ),
                             labelText: 'Họ tên',
-                            labelStyle: TextStyle(color: Colors.blue.shade700, fontSize: 16),
+                            labelStyle: TextStyle(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade100
+                                  : Colors.blue.shade700,
+                              fontSize: 16,
+                            ),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.9),
+                            fillColor: themeProvider.isDarkMode
+                                ? Colors.grey[800]!.withOpacity(0.9)
+                                : Colors.white.withOpacity(0.9),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade600, width: 2),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.lightBlue.shade200
+                                    : Colors.lightBlue.shade600,
+                                width: 2,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                           ),
                         ),
@@ -235,22 +347,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
                           decoration: InputDecoration(
-                            prefixIcon: Icon(Icons.phone, color: Colors.lightBlue.shade600),
+                            prefixIcon: Icon(
+                              Icons.phone,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade200
+                                  : Colors.lightBlue.shade600,
+                            ),
                             labelText: 'Số điện thoại (không bắt buộc)',
-                            labelStyle: TextStyle(color: Colors.blue.shade700, fontSize: 16),
+                            labelStyle: TextStyle(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade100
+                                  : Colors.blue.shade700,
+                              fontSize: 16,
+                            ),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.9),
+                            fillColor: themeProvider.isDarkMode
+                                ? Colors.grey[800]!.withOpacity(0.9)
+                                : Colors.white.withOpacity(0.9),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade600, width: 2),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.lightBlue.shade200
+                                    : Colors.lightBlue.shade600,
+                                width: 2,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                           ),
                         ),
@@ -258,22 +395,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextField(
                           controller: _addressController,
                           decoration: InputDecoration(
-                            prefixIcon: Icon(Icons.location_on, color: Colors.lightBlue.shade600),
+                            prefixIcon: Icon(
+                              Icons.location_on,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade200
+                                  : Colors.lightBlue.shade600,
+                            ),
                             labelText: 'Địa chỉ (không bắt buộc)',
-                            labelStyle: TextStyle(color: Colors.blue.shade700, fontSize: 16),
+                            labelStyle: TextStyle(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade100
+                                  : Colors.blue.shade700,
+                              fontSize: 16,
+                            ),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.9),
+                            fillColor: themeProvider.isDarkMode
+                                ? Colors.grey[800]!.withOpacity(0.9)
+                                : Colors.white.withOpacity(0.9),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade600, width: 2),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.lightBlue.shade200
+                                    : Colors.lightBlue.shade600,
+                                width: 2,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                           ),
                         ),
@@ -281,24 +443,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ElevatedButton(
                           onPressed: _register,
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.zero, // Loại bỏ padding mặc định
+                            padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
                             elevation: 8,
-                            shadowColor: Colors.blueGrey.withOpacity(0.3),
+                            shadowColor: themeProvider.isDarkMode
+                                ? Colors.black.withOpacity(0.3)
+                                : Colors.blueGrey.withOpacity(0.3),
                           ),
                           child: Ink(
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Colors.lightBlue.shade600, Colors.lightBlue.shade400],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                              gradient: buttonGradient,
                               borderRadius: BorderRadius.circular(30),
                             ),
                             child: Container(
-                              constraints: BoxConstraints(minWidth: 200, minHeight: 60), // Đảm bảo kích thước nút
+                              constraints: BoxConstraints(minWidth: 200, minHeight: 60),
                               alignment: Alignment.center,
                               child: Text(
                                 'Đăng ký',
@@ -323,7 +483,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: Text(
                             'Đã có tài khoản? Đăng nhập ngay',
                             style: TextStyle(
-                              color: Colors.lightBlue.shade600,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade200
+                                  : Colors.lightBlue.shade600,
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                               letterSpacing: 0.5,

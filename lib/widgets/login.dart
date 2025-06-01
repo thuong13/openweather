@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../database/database_helper.dart';
+import '../models/theme_language_provider.dart'; // Đảm bảo import ThemeProvider
 import 'home_screen.dart';
 import 'register.dart';
 
@@ -73,20 +75,48 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Lấy ThemeProvider để xác định chế độ sáng/tối
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    // Gradient tùy chỉnh theo theme
+    final appBarGradient = LinearGradient(
+      colors: themeProvider.isDarkMode
+          ? [Colors.blueGrey[900]!, Colors.blueGrey[800]!] // Dark Mode
+          : [Colors.lightBlue.shade200, Colors.lightBlue.shade100], // Light Mode
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
+    final bodyGradient = LinearGradient(
+      colors: themeProvider.isDarkMode
+          ? [Colors.blueGrey[900]!, Colors.grey[850]!] // Dark Mode
+          : [Colors.lightBlue.shade100, Colors.white], // Light Mode
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    );
+
+    final containerGradient = LinearGradient(
+      colors: themeProvider.isDarkMode
+          ? [Colors.grey[800]!, Colors.blueGrey[800]!.withOpacity(0.2)] // Dark Mode
+          : [Colors.white, Colors.lightBlue.shade50], // Light Mode
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent, // Để gradient hiển thị đúng
       appBar: AppBar(
-        titleSpacing: 0, // Loại bỏ khoảng cách mặc định giữa leading và title
-        leadingWidth: 40, // Giảm chiều rộng của leading để sát hơn
+        titleSpacing: 0,
+        leadingWidth: 40,
         title: Row(
           children: [
-            SizedBox(width: 4), // Điều chỉnh khoảng cách nhỏ giữa icon và chữ
+            SizedBox(width: 4),
             Text(
               'Đăng nhập',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: themeProvider.isDarkMode ? Colors.white : Colors.white, // Giữ màu trắng cho AppBar
               ),
             ),
           ],
@@ -95,15 +125,12 @@ class _LoginScreenState extends State<LoginScreen> {
         elevation: 0,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.lightBlue.shade200, Colors.lightBlue.shade100],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: appBarGradient,
           ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_new,
+              color: themeProvider.isDarkMode ? Colors.white : Colors.white), // Giữ màu trắng
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -111,11 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.lightBlue.shade100, Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          gradient: bodyGradient,
         ),
         child: SafeArea(
           child: Center(
@@ -124,15 +147,13 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Container(
                 padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.white, Colors.lightBlue.shade50],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: containerGradient,
                   borderRadius: BorderRadius.circular(35),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.blueGrey.withOpacity(0.1),
+                      color: themeProvider.isDarkMode
+                          ? Colors.black.withOpacity(0.3)
+                          : Colors.blueGrey.withOpacity(0.1),
                       blurRadius: 20,
                       offset: Offset(0, 10),
                     ),
@@ -143,7 +164,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     CircleAvatar(
                       radius: 45,
-                      backgroundColor: Colors.lightBlue.shade300,
+                      backgroundColor: themeProvider.isDarkMode
+                          ? Colors.blueGrey[800] // Dark Mode
+                          : Colors.lightBlue.shade300, // Light Mode
                       child: Icon(Icons.lock, size: 55, color: Colors.white),
                     ),
                     const SizedBox(height: 25),
@@ -152,7 +175,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w600,
-                        color: Colors.blue.shade700,
+                        color: themeProvider.isDarkMode
+                            ? Colors.lightBlue.shade100 // Light blue nhạt cho Dark Mode
+                            : Colors.blue.shade700, // Blue đậm cho Light Mode
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -172,21 +197,46 @@ class _LoginScreenState extends State<LoginScreen> {
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            labelStyle: TextStyle(color: Colors.blue.shade700, fontSize: 16),
-                            prefixIcon: Icon(Icons.email_outlined, color: Colors.lightBlue.shade600),
+                            labelStyle: TextStyle(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade100 // Light blue nhạt cho Dark Mode
+                                  : Colors.blue.shade700, // Blue đậm cho Light Mode
+                              fontSize: 16,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade200 // Light blue nhạt cho Dark Mode
+                                  : Colors.lightBlue.shade600, // Light blue đậm cho Light Mode
+                            ),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.9),
+                            fillColor: themeProvider.isDarkMode
+                                ? Colors.grey[800]!.withOpacity(0.9)
+                                : Colors.white.withOpacity(0.9),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade600, width: 2),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.lightBlue.shade200
+                                    : Colors.lightBlue.shade600,
+                                width: 2,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.blueGrey[800]!
+                                    : Colors.lightBlue.shade200,
+                              ),
                             ),
                           ),
                           onChanged: (value) {
@@ -203,7 +253,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [Colors.white, Colors.lightBlue.shade50],
+                                  colors: themeProvider.isDarkMode
+                                      ? [Colors.grey[800]!, Colors.blueGrey[800]!.withOpacity(0.2)]
+                                      : [Colors.white, Colors.lightBlue.shade50],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
@@ -213,18 +265,37 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: ListView.separated(
                                 padding: EdgeInsets.zero,
                                 itemCount: options.length,
-                                separatorBuilder: (_, __) => Divider(height: 1, color: Colors.lightBlue.shade100),
+                                separatorBuilder: (_, __) => Divider(
+                                  height: 1,
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.blueGrey[800]
+                                      : Colors.lightBlue.shade100,
+                                ),
                                 itemBuilder: (context, index) {
                                   final account = options.elementAt(index);
                                   return ListTile(
-                                    leading: Icon(Icons.person, color: Colors.lightBlue.shade600),
+                                    leading: Icon(
+                                      Icons.person,
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.lightBlue.shade200
+                                          : Colors.lightBlue.shade600,
+                                    ),
                                     title: Text(
                                       account['email'],
-                                      style: TextStyle(color: Colors.blue.shade700, fontSize: 15),
+                                      style: TextStyle(
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.lightBlue.shade100
+                                            : Colors.blue.shade700,
+                                        fontSize: 15,
+                                      ),
                                     ),
                                     subtitle: Text(
                                       account['name'] ?? 'Chưa có tên',
-                                      style: TextStyle(color: Colors.grey.shade600),
+                                      style: TextStyle(
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.grey[400]
+                                            : Colors.grey.shade600,
+                                      ),
                                     ),
                                     trailing: IconButton(
                                       icon: Icon(Icons.close, color: Colors.red.shade300),
@@ -248,15 +319,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         labelText: 'Mật khẩu',
-                        labelStyle: TextStyle(color: Colors.blue.shade700, fontSize: 16),
-                        prefixIcon: Icon(Icons.lock_outline, color: Colors.lightBlue.shade600),
+                        labelStyle: TextStyle(
+                          color: themeProvider.isDarkMode
+                              ? Colors.lightBlue.shade100
+                              : Colors.blue.shade700,
+                          fontSize: 16,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.lock_outline,
+                          color: themeProvider.isDarkMode
+                              ? Colors.lightBlue.shade200
+                              : Colors.lightBlue.shade600,
+                        ),
                         suffixIcon: IconButton(
                           icon: AnimatedSwitcher(
                             duration: Duration(milliseconds: 300),
                             child: Icon(
                               _obscurePassword ? Icons.visibility_off : Icons.visibility,
                               key: ValueKey(_obscurePassword),
-                              color: Colors.lightBlue.shade600,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade200
+                                  : Colors.lightBlue.shade600,
                             ),
                           ),
                           onPressed: () {
@@ -266,18 +349,33 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                         ),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.9),
+                        fillColor: themeProvider.isDarkMode
+                            ? Colors.grey[800]!.withOpacity(0.9)
+                            : Colors.white.withOpacity(0.9),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                          borderSide: BorderSide(
+                            color: themeProvider.isDarkMode
+                                ? Colors.blueGrey[800]!
+                                : Colors.lightBlue.shade200,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide(color: Colors.lightBlue.shade600, width: 2),
+                          borderSide: BorderSide(
+                            color: themeProvider.isDarkMode
+                                ? Colors.lightBlue.shade200
+                                : Colors.lightBlue.shade600,
+                            width: 2,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide(color: Colors.lightBlue.shade200),
+                          borderSide: BorderSide(
+                            color: themeProvider.isDarkMode
+                                ? Colors.blueGrey[800]!
+                                : Colors.lightBlue.shade200,
+                          ),
                         ),
                       ),
                     ),
@@ -295,17 +393,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                         elevation: 8,
-                        shadowColor: Colors.blueGrey.withOpacity(0.3),
+                        shadowColor: themeProvider.isDarkMode
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.blueGrey.withOpacity(0.3),
                         backgroundColor: Colors.transparent,
                       ).copyWith(
                         backgroundColor: MaterialStateProperty.resolveWith<Color>(
                               (Set<MaterialState> states) {
                             if (states.contains(MaterialState.pressed)) {
-                              return Colors.lightBlue.shade700;
+                              return themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade900
+                                  : Colors.lightBlue.shade700;
                             } else if (states.contains(MaterialState.hovered)) {
-                              return Colors.lightBlue.shade500;
+                              return themeProvider.isDarkMode
+                                  ? Colors.lightBlue.shade800
+                                  : Colors.lightBlue.shade500;
                             }
-                            return Colors.lightBlue.shade600;
+                            return themeProvider.isDarkMode
+                                ? Colors.lightBlue.shade800
+                                : Colors.lightBlue.shade600;
                           },
                         ),
                         overlayColor: MaterialStateProperty.all(Colors.transparent),
@@ -321,11 +427,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           MaterialPageRoute(builder: (_) => RegisterScreen()),
                         );
                       },
-                      icon: Icon(Icons.person_add_alt, color: Colors.lightBlue.shade600, size: 20),
+                      icon: Icon(Icons.person_add_alt,
+                          color: themeProvider.isDarkMode
+                              ? Colors.lightBlue.shade200
+                              : Colors.lightBlue.shade600,
+                          size: 20),
                       label: Text(
                         'Chưa có tài khoản? Đăng ký ngay',
                         style: TextStyle(
-                          color: Colors.lightBlue.shade600,
+                          color: themeProvider.isDarkMode
+                              ? Colors.lightBlue.shade200
+                              : Colors.lightBlue.shade600,
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,
